@@ -10,6 +10,7 @@ var StudentSchema = new Schema(
         department : {type : String,required:true},
         year : {type : String,required:true},
         semester : {type : String,required:true},
+        placement : {type : String},
         courses : [
             {
                 school : {type : String},
@@ -40,6 +41,8 @@ var StudentSchema = new Schema(
             }
         ],
         profilePic : {data : {type : Buffer}},
+        otp : {type : String},
+        otpExpireTime : {type : String},
 
        
 
