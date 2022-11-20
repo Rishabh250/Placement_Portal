@@ -5,12 +5,15 @@ var StudentSchema = new Schema(
     {
         name : {type : String},
         password : {type:String,required:true},
-        email : {type : String,required:true,unique:true},
-        systemID : {type : String,required:true,unique:true},
-        department : {type : String,required:true},
-        year : {type : String,required:true},
-        semester : {type : String,required:true},
+        phoneNo : {type:String,required:true},
+        email : {type : String,required:true,},
+        systemID : {type : String,required:true,},
+        department : {type : String},
+        year : {type : String},
+        semester : {type : String},
         placement : {type : String},
+        userType : {type :String },
+        accountVerified : {type : Boolean},
         courses : [
             {
                 school : {type : String},

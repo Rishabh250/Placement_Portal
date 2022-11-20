@@ -17,6 +17,7 @@ stdRouter.post("/uploadProfilePic",studentRouter.uploadProfilePic);
 stdRouter.post("/sendOTP",studentRouter.sendOTP);
 stdRouter.post("/verifyOTP",studentRouter.verifyOTP);
 stdRouter.get("/getStudentDetails",studentRouter.getStudentDetails);
+stdRouter.get("/getAllSTD/sysID=:sysID", studentRouter.getAllSTDs);
 
 export default stdRouter;
 

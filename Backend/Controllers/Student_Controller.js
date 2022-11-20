@@ -34,7 +34,6 @@ var months = [
 
     const hashContent = (content)=>{
         var hash = bcrypt.hashSync(content,10);
-        console.log(hash);
         return hash;
     }
     
@@ -61,12 +60,19 @@ var studentRouter = {
                 email : req.body.email,
                 password : password,
                 systemID : req.body.systemID,
-                department : req.body.department,
-                year : req.body.year,
-                semester : req.body.semester,
-                profilePic : req.body.profilePic
+                phoneNo : req.body.phone,
+                userType : "Student",
+                accountVerified : false
             
             });
+
+            var findEmail = await Student.findOne({email: req.body.email});
+            var findSystemID = await Student.findOne({systemID: req.body.systemID});
+            console.log(findEmail);
+
+            if(findEmail || findSystemID){
+                return res.status(201).json({studentRegistrationError : `c1`})
+            }
             
             
           
@@ -74,10 +80,8 @@ var studentRouter = {
             var createStudent =   await Student.create(createStudent);
             
     
-            return res.status(200).json({student : createStudent, token : token})
-                  
-
-            
+            return res.status(200).json({student : createStudent, token : token,isRegister:true})
+    
             
         } catch (error) {
             console.log(`Student Registration ${error}`);
@@ -372,16 +376,200 @@ var studentRouter = {
                   return res.status(400).json({otpStatus : "OTP Expire"})  ;
                     
                 }
-
-
             }
             catch (error) {
                 return res.status(403).json({otpStatus : `Failed to send ${error}`})
                 
             }
     },
+    forgetPassword: async function(req, res) {
+        try{
+            Users.findOne({
+                email: req.body.email
+            }, function(err, user) {
+                if (err) {
+                    throw err;
+                }
+                if (!user) {
+                    return res.status(403).send({ success: false, msg: "user not found" });
+                } else {
+    
+    
+                    const passwordHash = bcrypt.hashSync(req.body.password, 10);
+                    Users.findOneAndUpdate({ email: req.body.email }, { password: passwordHash }, (err, data) => {
+                        if (err) {
+                            throw err;
+                        }
+                        return res.status(200).send({ msg: "Password Reset", "user": { email: req.body.email, password: passwordHash } });
+                    });
+                }
+            });
+        }
+        catch(e){
+            console.log(e)
+            return res.status(403).json({msg : "Something went wrong"})
+        }
+    },
+    getUserInfo: async function(req, res) {
+        try{
+            if (req.headers["x-access-token"]) {
+                var token = req.headers["x-access-token"];
+                var decodeToken = jwt.decode(token, config.secret);
+                var getUserData = await Users.findOne({ email: decodeToken }).populate({path : "events"});
+                return res.json({ success: "User Info", user: getUserData });
+            } else {
+                return res.json({ success: false, msg: 'No Found' });
+    
+            }
+        }
+        catch(e){
+            console.log(e)
+            return res.status(403).json({msg : "Something went wrong"})
+        }
+    },
+
+    getStudentEvents: async function(req, res) {
+
+       try {
+        if (req.headers["x-access-token"]) {
+            let eventList = [];
+
+            var token = req.headers["x-access-token"];
+            var decodeToken = jwt.decode(token, config.secret);
+            var getUserData = await Users.findOne({ email: decodeToken }).populate({ path: "events" });
+            for(var i =0 ; i < getUserData.events.length;i++){
+                if(getUserData.events[i].status === "open"){
+                    eventList.push(getUserData.events[i])
+                    eventList.sort(function(a, b) {
+                        var c = new Date(a.startDate);
+                        var d = new Date(b.startDate);
+                   
+                        return c-d;
+                    });
+                }
+            }
+            return res.json({ success: "User Info", eventsApplied: eventList});
+        } else {
+            return res.json({ success: false, msg: 'No Found' });
+
+        }
+       }  
+       
+       catch(e){
+        console.log(e)
+        return res.status(403).json({msg : "Something went wrong"})
+    }
+    },
+
+    getAllSTDs: async function(req, res) {
+        console.log(req.params.sysID)
+        try{
+         var allEvents; 
+         if(req.params.sysID){
+             allEvents = await Users.find({"$or" : [{systemID : {$regex:req.params.sysID }}]} ); 
+         }
+         if(req.params.sysID === " "){  
+             allEvents = await Users.find({});
+
+         }
+    
+         return res.status(200).json({ user: allEvents });
+        }
+        catch(e){
+         console.log(e)
+         return res.status(403).json({msg : "Something went wrong"})       }
+     },
+    getAllUser: async function(req, res) {
+        try{
+            //
+            //
+            var getAllUserData = await Users.find({}).populate({ path: "events" });
+            return res.json({ "user": getAllUserData });
+        }
+        catch(e){
+            console.log(e)
+            return res.status(403).json({msg : "Something went wrong"})
+        }
+    },
+
+    singleUser: async function(req, res) {
+        try{
+            if (!req.headers["x-access-token"]) {
+                return res.status(400).json({ msg: "Please provide token" });
+            }
+            var token = req.headers["x-access-token"];
+            var decodeToken = jwt.decode(token, config.secret);
+            var getUserData = await Users.findOne({ email: decodeToken }).populate({ path: "events" });
+            return res.json({ "user": getUserData });
+        }
+        catch(e){
+            console.log(e)
+            return res.status(403).json({msg : "Something went wrong"})
+        }
+    },
+
+    uploadImage: async function(req, res) {
+        try{
+            var userImage;
+            if (!req.headers["x-access-token"]) {
+                return res.status(400).json({ msg: "Please provide token" });
+            }
+            if (!req.body.profileImage) {
+
+                return res.status(400).json({ msg: "Please upload a profile image" });
+            } else {
+                userImage = req.body.profileImage;
+            }
+
+            var token = req.headers["x-access-token"];
+            var decodeToken = jwt.decode(token, config.secret);
+            var getUserData = await Users.findOneAndUpdate({ email: decodeToken }, { profileImage: userImage });
+            await getUserData.save();
+            return res.status(200).json({ msg: "Image Uploaded" });
+
+        }
+        catch(e){
+            console.log(e)
+            return res.status(403).json({msg : "Something went wrong"})
+        }
+
+    },
+    removeID : async function(req,res){
+        try{
+            let studentID = req.body.studentID
+            let deviceID = req.body.deviceID
+            let user = await Users.updateOne({_id : studentID},{ $unset: {deviceInfo : deviceID}})
+            return res.status(200).json({user : user})
+            
+        }
+        catch(e){
+            console.log(e)
+            return res.status(403).json({msg : "Something went wrong"})
+        }
+    },
+    editDetails : async function(req,res){
+        try{}
+        catch(e){
+            console.log(e)
+            return res.status(403).json({msg : "Something went wrong"})
+        }
+    },
+    checkdevice : async function(req,res){
+        if(!req.body.deviceID){
+            return res.status(200).json({msg : "No Device Id found"})
+        }
+
+
+        let checkID = await Users.findOne({deviceInfo : req.body.deviceID})
+        console.log(req.body.deviceID)
+        if(!checkID){
+            return res.status(200).json({msg : "Success"})
+        }
+        else{
+            return res.status(401).json({msg : "Device Found"})
+        }
+    },
     
 }
 
 export default studentRouter;
-
