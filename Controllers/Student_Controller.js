@@ -68,10 +68,9 @@ var studentRouter = {
 
             var findEmail = await Student.findOne({email: req.body.email});
             var findSystemID = await Student.findOne({systemID: req.body.systemID});
-            console.log(findEmail);
 
             if(findEmail || findSystemID){
-                return res.status(201).json({studentRegistrationError : `c1`})
+                return res.status(201).json({studentRegistrationError : `Account already exist`})
             }
             
             

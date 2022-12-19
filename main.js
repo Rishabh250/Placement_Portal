@@ -5,10 +5,12 @@ import studentrouter from "./Routes/Student_Routes.js"
 import multer from 'multer';
 import eventRouter from './Routes/EventRouter.js';
 import facultyRouter from './Routes/FacultyRouter.js';
+import Cors from 'cors'
 const app = express();
 connection();
 let Port = process.env.PORT || 2504;
 
+app.use(Cors())
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use("/student", studentrouter)
