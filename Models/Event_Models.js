@@ -4,14 +4,14 @@ import bcrypt  from "bcrypt";
 
 
 var eventSchema = new Schema({
-    title: { type: String, required: true },
-    type: { type: String, required: true },
+    title: { type: String },
+    type: { type: String },
     status: { type: String },
-    description: { type: String, required: true },
-    startDate: { type: String, required: true },
-    endDate: { type: String,required:true },
+    description: { type: String },
+    startDate: { type: String },
+    endDate: { type: String },
     registration : {type : Boolean},
-    eventPrice: { type: String, required: true },
+    eventPrice: { type: String },
     facultyAssigned: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Faculty"

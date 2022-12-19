@@ -4,12 +4,12 @@ import bcrypt  from "bcrypt";
 
 const facultySchema = new Schema({
 
-    email: { type: String, require: true, unique: true },
-    name: { type: String, require: true },
-    password: { type: String, require: true },
-    systemID: { type: String, require: true, unique: true },
-    type: { type: String, require: true },
-    gender: { type: String, required: true },
+    email: { type: String},
+    name: { type: String },
+    password: { type: String },
+    systemID: { type: String},
+    type: { type: String },
+    gender: { type: String },
     verified : {type : Boolean},
 
     profileImage: {
