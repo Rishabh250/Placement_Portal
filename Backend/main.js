@@ -7,30 +7,30 @@ import eventRouter from './Routes/EventRouter.js';
 import facultyRouter from './Routes/FacultyRouter.js';
 const app = express();
 connection();
-let Port = 2504;
+let Port = process.env.PORT || 2504;
 
-app.use(bodyParser.urlencoded({extended:true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use("/student",studentrouter)
-app.use("/faculty",facultyRouter)
-app.use("/events",eventRouter)
+app.use("/student", studentrouter)
+app.use("/faculty", facultyRouter)
+app.use("/events", eventRouter)
 
 
-app.listen(Port,()=>{console.log(`Server Connected to Port : ${Port}`);})
+app.listen(Port, () => { console.log(`Server Connected to Port : ${Port}`); })
 
-app.get("/",(req,res)=>{
+app.get("/", (req, res) => {
     return res.send("Connected");
 });
 
 var storage = multer.diskStorage({
-    destination : "./public/uploads",
-    filename : (req,file,cb)=>{
-        cb(null,Date.now()+file.originalname)
+    destination: "./public/uploads",
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + file.originalname)
     },
 });
 
 var upload = multer({
-    storage:storage,
+    storage: storage,
 }).single("profilePic");
 
-export default  upload;
+export default upload;
