@@ -337,6 +337,11 @@ var studentRouter = {
                   otpExpireTime: fetchStudent.otpExpireTime,
                 },
               });
+              await fetchStudent.updateOne({
+                $set: {
+                  accountVerified: true,
+                },
+              });
               fetchStudent.save();
               return res.status(200).json({ otpStatus: "OTP Verified" });
             } else {
@@ -381,12 +386,10 @@ var studentRouter = {
                 if (err) {
                   throw err;
                 }
-                return res
-                  .status(200)
-                  .send({
-                    msg: "Password Reset",
-                    user: { email: req.body.email, password: passwordHash },
-                  });
+                return res.status(200).send({
+                  msg: "Password Reset",
+                  user: { email: req.body.email, password: passwordHash },
+                });
               }
             );
           }
