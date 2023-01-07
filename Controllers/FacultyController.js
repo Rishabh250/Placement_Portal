@@ -3,46 +3,60 @@ import jwt, { decode } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 import Events from "../Models/Event_Models.js";
+import keys from "../public/Private/private_keys.js";
+import sendMail from "../public/EmailServide.js";
 
+const getFaculty = async (token) => {
+  var decode = jwt.verify(token, keys.TOKEN_KEY);
+  var findFaculty = await Faculty.findOne({ email: decode.email });
+
+  return findFaculty;
+};
+const generateRandomNumber = () => {
+  var randVal = 10000 + Math.random() * (99999 - 10000);
+  return Math.round(randVal);
+};
+
+const hashContent = (content) => {
+  var hash = bcrypt.hashSync(content, 10);
+  return hash;
+};
 var facultyRouters = {
-  addNew: function (req, res) {
+  addNew: async (req, res) => {
     try {
-      Faculty.findOne({ email: req.body.email }).then((err) => {
-        if (err) {
-          res.status(400).send("email already exits");
-          return;
-        } else {
-          var password = bcrypt.hashSync(req.body.password, 10);
-          var newUser = Faculty({
-            email: req.body.email,
-            name: req.body.name,
-            password: password,
-            type: req.body.type,
-            systemID: req.body.systemID,
-            gender: req.body.gender,
-            profileImage: userImage,
-            verified: false,
-          });
+      var password = req.body.password;
 
-          newUser.save(function (err, newUser) {
-            if (err) {
-              return res
-                .status(400)
-                .json({ success: false, msg: "Failed to save" });
-            } else {
-              var token = jwt.encode(req.body.email, config.secret);
-              return res.json({
-                success: "Faculty Registered",
-                token: token,
-                user: newUser,
-              });
-            }
-          });
-        }
+      password = hashContent(password);
+
+      var createFaculty = Faculty({
+        name: req.body.name,
+        email: req.body.email,
+        password: password,
+        systemID: req.body.systemID,
+        phoneNo: req.body.phone,
+        gender: req.body.gender,
+        userType: "Facu;ty",
+        accountVerified: false,
       });
-    } catch (e) {
-      console.log(e);
-      return res.status(403).json({ msg: "Something went wrong" });
+
+      var findEmail = await Faculty.findOne({ email: req.body.email });
+      var findSystemID = await Faculty.findOne({ systemID: req.body.systemID });
+
+      if (findEmail || findSystemID) {
+        return res
+          .status(201)
+          .json({ FacultyRegistrationError: `Account already exist` });
+      }
+
+      var token = jwt.sign({ email: req.body.email }, keys.TOKEN_KEY);
+      var createFaculty = await Faculty.create(createFaculty);
+
+      return res
+        .status(200)
+        .json({ Faculty: createFaculty, token: token, isRegister: true });
+    } catch (error) {
+      console.log(`Faculty Registration ${error}`);
+      return res.status(400).json({ FacultyRegistrationError: error });
     }
   },
   authorization: async function (req, res) {
@@ -64,7 +78,7 @@ var facultyRouters = {
                 res.json({
                   success: true,
                   token: token,
-                  verified: user.verified,
+                  accountVerified: user.accountVerified,
                 });
                 return;
               } else {
@@ -81,101 +95,81 @@ var facultyRouters = {
       return res.status(403).json({ msg: "Something went wrong" });
     }
   },
-  sendOTP: async function (req, res) {
+  sendOTP: async (req, res) => {
     try {
-      if (!req.body.email) {
-        return res.status(400).json({ msg: "Enter all fields" });
+      if (!req.headers["sharda-access-token"]) {
+        return res.status(404).json({ msg: "Need Token" });
       }
-      Faculty.findOne(
-        {
-          email: req.body.email,
-        },
-        function (err, user) {
-          if (err) {
-            console.log(err);
-            throw err;
-          }
-          if (!user) {
-            return res
-              .status(403)
-              .send({ success: false, msg: "user not found" });
-          } else {
-            var userEmail = req.body.email;
-            let mailTransporter = nodemailer.createTransport({
-              service: "gmail",
-              auth: {
-                user: "rishu25bansal@gmail.com",
-                pass: "ugmmbvbnfcppjvek",
-              },
-            });
-            var finalOTP = Math.floor(100000 + Math.random() * 900000);
+      var fetchFaculty = await getFaculty(req.headers["sharda-access-token"]);
+      var otp = generateRandomNumber();
 
-            let mailDetails = {
-              from: "rishu25bansal@gmail.com",
-              to: userEmail,
-              subject: "Test mail",
-              text: "OTP for password reset is " + finalOTP,
-            };
-            mailTransporter.sendMail(mailDetails, async function (err, data) {
-              if (err) {
-                console.log(err);
-                res.status(400).json({ msg: err });
-              } else {
-                var user = await Faculty.findOne({ email: userEmail });
-                user.otp = finalOTP;
-                await user.save();
-                res.status(200).json({ msg: "OTP Send" });
-              }
-            });
-          }
-        }
+      var time = new Date();
+      var currentTime = time.getTime();
+
+      await sendMail(
+        fetchFaculty.email,
+        "Account Verification",
+        `${otp}`,
+        fetchFaculty.name
       );
-    } catch (e) {
-      console.log(e);
-      return res.status(403).json({ msg: "Something went wrong" });
+
+      var hasOTP = hashContent(otp.toString());
+      fetchFaculty.set({
+        otp: hasOTP,
+        otpExpireTime: currentTime + 10 * 60000,
+      });
+      await fetchFaculty.save();
+      return res
+        .status(200)
+        .json({ email: fetchFaculty.email, otpStatus: "Send Successfully" });
+    } catch (error) {
+      return res.status(403).json({ otpStatus: `Failed to send ${error}` });
     }
   },
-
-  verifyOTP: async function (req, res) {
+  verifyOTP: async (req, res) => {
     try {
-      Faculty.findOne({ email: req.body.email }, async function (err, user) {
-        if (err) {
-          throw err;
-        }
-        if (!user) {
-          return res
-            .status(403)
-            .send({ success: false, msg: "user not found" });
-        } else {
-          if (!req.body.otp) {
-            res.status(400).json({ msg: "Invalid OTP" });
-            return;
-          }
-          if (!req.body.email) {
-            res.status(400).json({ msg: "Email Required" });
-            return;
-          } else {
-            var otpVerify = req.body.otp;
+      if (!req.headers["sharda-access-token"]) {
+        return res.status(404).json({ msg: "Need Token" });
+      }
+      var time = new Date();
+      var fetchFaculty = await getFaculty(req.headers["sharda-access-token"]);
 
-            var getUser = await Faculty.findOne({ email: req.body.email });
-            if (getUser.otp === otpVerify) {
-              await getUser.set({ verified: true });
-              await Faculty.updateOne(
-                { email: req.body.email },
-                { $unset: { otp: otpVerify } }
-              );
-              await getUser.save();
-
-              return res.status(200).json({ msg: "OTP Verified" });
+      if (parseInt(time.getTime()) <= parseInt(fetchFaculty.otpExpireTime)) {
+        bcrypt.compare(
+          req.body.otp.toString(),
+          fetchFaculty.otp,
+          async (err, result) => {
+            if (result) {
+              await fetchFaculty.updateOne({
+                $unset: {
+                  otp: fetchFaculty.otp,
+                  otpExpireTime: fetchFaculty.otpExpireTime,
+                },
+              });
+              await fetchFaculty.updateOne({
+                $set: {
+                  accountVerified: true,
+                },
+              });
+              fetchFaculty.save();
+              return res.status(200).json({ otpStatus: "OTP Verified" });
             } else {
-              return res.status(400).json({ msg: "Invalid OTP" });
+              return res.status(401).json({ otpStatus: "Wrong OTP" });
             }
           }
-        }
-      });
-    } catch (e) {
-      console.log(e);
-      return res.status(403).json({ msg: "Something went wrong" });
+        );
+      } else {
+        await fetchFaculty.updateOne({
+          $unset: {
+            otp: fetchFaculty.otp,
+            otpExpireTime: fetchFaculty.otpExpireTime,
+          },
+        });
+        fetchFaculty.save();
+        return res.status(400).json({ otpStatus: "OTP Expire" });
+      }
+    } catch (error) {
+      return res.status(403).json({ otpStatus: `Failed to send ${error}` });
     }
   },
 
