@@ -44,10 +44,6 @@ var studentRouter = {
 
   studentRegistration: async (req, res) => {
     try {
-      if (!req.body.name) {
-        return res.status(404).json({ msg: "Field can't be empty" });
-      }
-
       var password = req.body.password;
 
       password = hashContent(password);
@@ -58,6 +54,7 @@ var studentRouter = {
         password: password,
         systemID: req.body.systemID,
         phoneNo: req.body.phone,
+        gender: req.body.gender,
         userType: "Student",
         accountVerified: false,
       });
