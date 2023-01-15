@@ -1,10 +1,9 @@
-import Faculty from "../Models/FacultyModels.js";
-import jwt, { decode } from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken";
 import Events from "../Models/Event_Models.js";
-import keys from "../public/Private/private_keys.js";
+import Faculty from "../Models/FacultyModels.js";
 import sendMail from "../public/EmailServide.js";
+import keys from "../public/Private/private_keys.js";
 
 const getFaculty = async (token) => {
   var decode = jwt.verify(token, keys.TOKEN_KEY);
@@ -35,7 +34,7 @@ var facultyRouters = {
         systemID: req.body.systemID,
         phoneNo: req.body.phone,
         gender: req.body.gender,
-        userType: "Facu;ty",
+        userType: "Faculty",
         accountVerified: false,
       });
 
@@ -43,9 +42,7 @@ var facultyRouters = {
       var findSystemID = await Faculty.findOne({ systemID: req.body.systemID });
 
       if (findEmail || findSystemID) {
-        return res
-          .status(201)
-          .json({ FacultyRegistrationError: `Account already exist` });
+        return res.status(402).json({ msg: `Account already exist` });
       }
 
       var token = jwt.sign({ email: req.body.email }, keys.TOKEN_KEY);
