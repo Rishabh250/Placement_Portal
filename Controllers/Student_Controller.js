@@ -1,9 +1,9 @@
-import Student from "../Models/Student_Model.js";
-import bcrypt, { hash } from "bcrypt";
-import jwt, { decode } from "jsonwebtoken";
-import keys from "../public/Private/private_keys.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import upload from "../main.js";
+import Student from "../Models/Student_Model.js";
 import sendMail from "../public/EmailServide.js";
+import keys from "../public/Private/private_keys.js";
 
 var months = [
   "January",
@@ -63,9 +63,7 @@ var studentRouter = {
       var findSystemID = await Student.findOne({ systemID: req.body.systemID });
 
       if (findEmail || findSystemID) {
-        return res
-          .status(201)
-          .json({ studentRegistrationError: `Account already exist` });
+        return res.status(402).json({ msg: `Account already exist` });
       }
 
       var token = jwt.sign({ email: req.body.email }, keys.TOKEN_KEY);
@@ -75,8 +73,7 @@ var studentRouter = {
         .status(200)
         .json({ student: createStudent, token: token, isRegister: true });
     } catch (error) {
-      console.log(`Student Registration ${error}`);
-      return res.status(400).json({ studentRegistrationError: error });
+      return res.status(400).json({ msg: error });
     }
   },
 
@@ -109,11 +106,10 @@ var studentRouter = {
           }
         );
       } else {
-        return res.status(404).json({ msg: "No Student found" });
+        return res.status(400).json({ msg: "No Student found" });
       }
     } catch (error) {
-      console.log(`Student Login Error ${error}`);
-      return res.status(404).json({ studentLoginError: error });
+      return res.status(400).json({ msg: error });
     }
   },
 
