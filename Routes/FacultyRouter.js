@@ -1,8 +1,7 @@
-import facultyRouters  from "../Controllers/FacultyController.js"
 import express from "express";
+import facultyRouters from "../Controllers/FacultyController.js";
 
 const facultyRouter = express.Router();
-
 
 //Faculty Create User
 facultyRouter.post("/createFaculty", facultyRouters.addNew);
@@ -21,9 +20,6 @@ facultyRouter.get("/facultyuserInfo", facultyRouters.getUserInfo);
 //Get All User Data
 facultyRouter.get("/facultygetAllUser", facultyRouters.getAllUser);
 
-//Forget Password
-facultyRouter.post("/facultyforgetPassword", facultyRouters.forgetPassword);
-
 //Send OTP
 facultyRouter.post("/facultysendOTP", facultyRouters.sendOTP);
 
@@ -34,10 +30,9 @@ facultyRouter.post("/facultyverifyOTP", facultyRouters.verifyOTP);
 facultyRouter.post("/facultyAssigned", facultyRouters.assignFaculty);
 
 //Faculty Upload Image
-facultyRouter.post("/facultyUploadImage",facultyRouters.uploadImage);
+facultyRouter.post("/facultyUploadImage", facultyRouters.uploadImage);
 
 //
-facultyRouter.get("/getAssignedEvents",facultyRouters.getAllEvents);
-
+facultyRouter.get("/getAssignedEvents", facultyRouters.getAllEvents);
 
 export default facultyRouter;

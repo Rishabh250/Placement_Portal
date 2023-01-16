@@ -4,22 +4,8 @@ import Events from "../Models/Event_Models.js";
 import Faculty from "../Models/FacultyModels.js";
 import sendMail from "../public/EmailServide.js";
 import keys from "../public/Private/private_keys.js";
+import { generateRandomNumber, getFaculty, hashContent } from "./Comman.js";
 
-const getFaculty = async (token) => {
-  var decode = jwt.verify(token, keys.TOKEN_KEY);
-  var findFaculty = await Faculty.findOne({ email: decode.email });
-
-  return findFaculty;
-};
-const generateRandomNumber = () => {
-  var randVal = 10000 + Math.random() * (99999 - 10000);
-  return Math.round(randVal);
-};
-
-const hashContent = (content) => {
-  var hash = bcrypt.hashSync(content, 10);
-  return hash;
-};
 var facultyRouters = {
   addNew: async (req, res) => {
     try {
@@ -94,10 +80,12 @@ var facultyRouters = {
   },
   sendOTP: async (req, res) => {
     try {
+      var fetchFaculty;
       if (!req.headers["sharda-access-token"]) {
-        return res.status(404).json({ msg: "Need Token" });
+        fetchFaculty = await Faculty.findOne({ email: req.body.email });
+      } else {
+        fetchFaculty = await getFaculty(req.headers["sharda-access-token"]);
       }
-      var fetchFaculty = await getFaculty(req.headers["sharda-access-token"]);
       var otp = generateRandomNumber();
 
       var time = new Date();
@@ -125,11 +113,13 @@ var facultyRouters = {
   },
   verifyOTP: async (req, res) => {
     try {
+      var fetchFaculty;
       if (!req.headers["sharda-access-token"]) {
-        return res.status(404).json({ msg: "Need Token" });
+        fetchFaculty = await Faculty.findOne({ email: req.body.email });
+      } else {
+        fetchFaculty = await getStudent(req.headers["sharda-access-token"]);
       }
       var time = new Date();
-      var fetchFaculty = await getFaculty(req.headers["sharda-access-token"]);
 
       if (parseInt(time.getTime()) <= parseInt(fetchFaculty.otpExpireTime)) {
         bcrypt.compare(

@@ -4,6 +4,7 @@ import upload from "../main.js";
 import Student from "../Models/Student_Model.js";
 import sendMail from "../public/EmailServide.js";
 import keys from "../public/Private/private_keys.js";
+import { generateRandomNumber, getStudent, hashContent } from "./Comman.js";
 
 var months = [
   "January",
@@ -19,23 +20,6 @@ var months = [
   "November",
   "December",
 ];
-
-const getStudent = async (token) => {
-  var decode = jwt.verify(token, keys.TOKEN_KEY);
-  var findStudent = await Student.findOne({ email: decode.email });
-
-  return findStudent;
-};
-
-const generateRandomNumber = () => {
-  var randVal = 10000 + Math.random() * (99999 - 10000);
-  return Math.round(randVal);
-};
-
-const hashContent = (content) => {
-  var hash = bcrypt.hashSync(content, 10);
-  return hash;
-};
 
 var studentRouter = {
   student_check_connection: async (req, res) => {
@@ -130,7 +114,6 @@ var studentRouter = {
         return res.status(404).json({ msg: "No Student Found" });
       }
     } catch (error) {
-      console.log(`Student Registration ${error}`);
       return res.status(200).json({ getstudentdetails: error });
     }
   },
@@ -280,10 +263,12 @@ var studentRouter = {
 
   sendOTP: async (req, res) => {
     try {
+      var fetchStudent;
       if (!req.headers["sharda-access-token"]) {
-        return res.status(404).json({ msg: "Need Token" });
+        fetchStudent = await Student.findOne({ email: req.body.email });
+      } else {
+        fetchStudent = await getStudent(req.headers["sharda-access-token"]);
       }
-      var fetchStudent = await getStudent(req.headers["sharda-access-token"]);
       var otp = generateRandomNumber();
 
       var time = new Date();
@@ -306,17 +291,19 @@ var studentRouter = {
         .status(200)
         .json({ email: fetchStudent.email, otpStatus: "Send Successfully" });
     } catch (error) {
-      return res.status(403).json({ otpStatus: `Failed to send ${error}` });
+      return res.status(403).json({ msg: `Failed to send ${error}` });
     }
   },
 
   verifyOTP: async (req, res) => {
     try {
+      var fetchStudent;
       if (!req.headers["sharda-access-token"]) {
-        return res.status(404).json({ msg: "Need Token" });
+        fetchStudent = await Student.findOne({ email: req.body.email });
+      } else {
+        fetchStudent = await getStudent(req.headers["sharda-access-token"]);
       }
       var time = new Date();
-      var fetchStudent = await getStudent(req.headers["sharda-access-token"]);
 
       if (parseInt(time.getTime()) <= parseInt(fetchStudent.otpExpireTime)) {
         bcrypt.compare(
